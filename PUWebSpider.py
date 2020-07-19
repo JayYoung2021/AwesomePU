@@ -1,6 +1,8 @@
 import re
 import requests
 from lxml import etree
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 
 
 def unescape(text):
@@ -12,7 +14,7 @@ def unescape(text):
     return text
 
 
-def parse_one_page(html):
+def parse_one_page(html):  # str -> list
     items = []
     html = etree.HTML(html)
     for i in range(1, 10 + 1):
@@ -43,7 +45,7 @@ def parse_one_page(html):
     return items
 
 
-def parse_one_activity(html):
+def parse_one_activity(html):  # str -> list
     html = etree.HTML(html)
     content = html.xpath('string(/html/body/div[1]/div[3]/div/div/div[1]/div[2])')
     dict_ = {
@@ -74,36 +76,60 @@ def parse_one_activity(html):
 
 
 class PU:
-    sid = ''
-    number = ''
-    password = ''
-    college = ''
-    tribe = ''
-    grade = ''
-
-    def __init__(self, sid, number, password, college='', tribe=''):
-        # TODO mobile login
-        self.sid = sid
-        self.number = str(number)
+    def __init__(self, sid, account, password):
         self.password = str(password)
+        if sid is None:  # Judge login method
+            self.mobile = str(account)
+            self.post_url = 'http://pocketuni.net/index.php?app=home&mod=Public&act=doMobileLogin'  # Mobile login url
+            post_data = {
+                'mobile': self.mobile,
+                'password': self.password,
+                'remember': 'on'
+            }
+        else:
+            self.sid = str(sid)
+            self.number = str(account)
+            self.post_url = 'http://pocketuni.net/index.php?app=home&mod=Public&act=doLogin'  # Sid and number login url
+            post_data = {
+                'sid': self.sid,
+                'number': self.number,
+                'password': self.password,
+                'remember': 'on'
+            }
+        self.session = requests.Session()
+        self.session.post(self.post_url, data=post_data)
 
+        self.college = None
+        self.tribe = None
+        self.grade = None
+
+    def verification(self):  # Verify whether the login  process is successful
+        html = etree.HTML(self.session.get('http://pocketuni.net/index.php?app=home&mod=Public&act=doLogin').text)
+        result = html.xpath('/html/head/script[1]/text()')
+        var = re.search('var _UID_ {3}=(.*)', result[0]).group(1)
+        _UID_ = re.search('\\d+', var).group(0)
+        if _UID_ == '0':
+            return False
+        else:
+            return True
+
+    def set_college(self, college, tribe):  # Set user's college and tribe
         self.college = college
-        self.tribe = tribe
-        self.grade = '20' + re.search('\\d+', self.tribe)[0][:2]
+        self.tribe = tribe.split()
+        self.grade = '20' + re.search('\\d+', self.tribe[0])[0][:2]
 
-    def get_one_activity(self, get_url):
-        post_url = 'http://pocketuni.net/index.php?app=home&mod=Public&act=doLogin'
-        post_data = {
-            'sid': self.sid,
-            'number': self.number,
-            'password': self.password,
-            'remember': 'on'
-        }
-        session = requests.Session()
-        session.post(post_url, data=post_data)
-        return session.get(get_url).text
+    def get_college_list(self):  # Get the college list of user's school
+        chrome_options = Options()
+        chrome_options.add_argument("--headless")
+        browser = webdriver.Chrome(options=chrome_options)
+        browser.get(self.session.get('http://pocketuni.net/index.php?app=home&mod=Public&act=Login').url)
+        button = browser.find_element_by_id('sub2')
+        button.click()
+        html = etree.HTML(browser.page_source)
+        result = html.xpath('/html/body/div[2]/div/div[3]/div[2]/div[1]/div[1]/div[2]/a/text()')
+        return result
 
-    def filtered_activities(self):
+    def filtered_activities(self):  # Filter out expired and other unavailable activities
         p = 0
         list_ = []
         while True:
@@ -114,22 +140,24 @@ class PU:
 
             count = 0
             for item in items:
-                if item['status'] == ['活动已结束']:
-                    count += 1
-            if count >= 10:
-                break
-
-            for item in items:
                 if item['status'] != ['活动已结束']:
                     bool_ = False
-                    info_activity = parse_one_activity(self.get_one_activity(item['link']))
+                    info_activity = parse_one_activity(self.session.get(item['link']).text)
                     if info_activity['tribe'] is None:
                         if (self.college in info_activity['college']) or (info_activity['college'] == '全部'):
                             if (self.grade in info_activity['grade']) or (info_activity['grade'] == '全部'):
                                 bool_ = True
                     else:
-                        if self.tribe in info_activity['tribe']:
-                            bool_ = True
+                        for item_ in self.tribe:
+                            if item_ in info_activity['tribe']:
+                                bool_ = True
                     if bool_ is True:
                         list_.append(info_activity)
+                else:
+                    count += 1
+                    if count >= 10:
+                        break  # Break point
+            else:
+                continue
+            break
         return list_
