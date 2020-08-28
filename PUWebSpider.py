@@ -77,9 +77,9 @@ def parse_one_activity(html):  # str -> list
 
 class PU:
     def __init__(self, sid, account, password):
-        self.password = str(password)
+        self.password = password
         if sid is None:  # Judge login method
-            self.mobile = str(account)
+            self.mobile = account
             self.post_url = 'http://pocketuni.net/index.php?app=home&mod=Public&act=doMobileLogin'  # Mobile login url
             post_data = {
                 'mobile': self.mobile,
@@ -87,8 +87,8 @@ class PU:
                 'remember': 'on'
             }
         else:
-            self.sid = str(sid)
-            self.number = str(account)
+            self.sid = sid
+            self.number = account
             self.post_url = 'http://pocketuni.net/index.php?app=home&mod=Public&act=doLogin'  # Sid and number login url
             post_data = {
                 'sid': self.sid,
@@ -115,8 +115,8 @@ class PU:
 
     def set_college(self, college, tribe):  # Set user's college and tribe
         self.college = college
-        self.tribe = tribe.split()
-        self.grade = '20' + re.search('\\d+', self.tribe[0])[0][:2]
+        self.tribe = tribe
+        self.grade = '20' + re.search('\\d+', self.tribe)[0][:2]
 
     def get_college_list(self):  # Get the college list of user's school
         chrome_options = Options()
@@ -129,6 +129,7 @@ class PU:
         result = html.xpath('/html/body/div[2]/div/div[3]/div[2]/div[1]/div[1]/div[2]/a/text()')
         return result
 
+    @property
     def filtered_activities(self):  # Filter out expired and other unavailable activities
         p = 0
         list_ = []
@@ -140,18 +141,18 @@ class PU:
 
             count = 0
             for item in items:
-                if item['status'] != ['活动已结束']:
-                    bool_ = False
+                if item['status'] != ['活动已结束'] and item['status'] !=['报名已结束']:
+                    flag = False
                     info_activity = parse_one_activity(self.session.get(item['link']).text)
                     if info_activity['tribe'] is None:
                         if (self.college in info_activity['college']) or (info_activity['college'] == '全部'):
                             if (self.grade in info_activity['grade']) or (info_activity['grade'] == '全部'):
-                                bool_ = True
+                                flag = True
                     else:
                         for item_ in self.tribe:
                             if item_ in info_activity['tribe']:
-                                bool_ = True
-                    if bool_ is True:
+                                flag = True
+                    if flag is True:
                         list_.append(info_activity)
                 else:
                     count += 1
