@@ -1,7 +1,7 @@
 import os
 import re
-from sys import exit
 from html import unescape
+from sys import exit
 from time import sleep
 
 import requests
@@ -58,49 +58,47 @@ class PU:
             for i in range(1, num_per_page + 1):
                 status = \
                     parent_html.xpath(f'/html/body/div[2]/div/div[3]/div[2]/div[1]/ul/li[{i}]/div[3]/ul/li/text()')[0]
-                if status not in ['活动已结束', '报名已结束']:
-                    if no_activity:
-                        no_activity = False
+                # if status not in ['活动已结束', '报名已结束']:
+                if True:
+                    rewards = parent_html.xpath(
+                        f'/html/body/div[2]/div/div[3]/div[2]/div[1]/ul/li[{i}]/div[2]/div[4]/text()')
+                    credit_hours = re.findall('\\d+', rewards[0])[0]
+                    if credit_hours != '0':
+                        link = \
+                            parent_html.xpath(
+                                f'/html/body/div[2]/div/div[3]/div[2]/div[1]/ul/li[{i}]/div[2]/div[1]/a/@href')[0]
+                        sub_html = etree.HTML(self.session.get(link).text)
+                        content = sub_html.xpath('string(/html/body/div[1]/div[3]/div/div/div[1]/div[2])')
+                        if re.search('可参与部落：(.*)', content) is None:
+                            college = sub_html.xpath('/html/body/div[1]/div[3]/div/div/div[1]/div[2]/span[5]/text()')[0]
+                            grade = unescape(re.search('活动年级：(.*)', content).group(1))
+                            try:
+                                surplus = re.search(r'剩余名额.*\n.*?(\d+)', content).group(1)
+                            except AttributeError:
+                                surplus = '无限制'
+                            if (my_college in college) or (college == '全部'):
+                                if (my_grade in grade) or (grade == '全部'):
+                                    if surplus != '0':
+                                        if no_activity:
+                                            no_activity = False
+                                        title = parent_html.xpath(
+                                            f'/html/body/div[2]/div/div[3]/div[2]/div[1]/ul/li[{i}]/div[2]/div[1]/a/text()')
+                                        print(f'活动名称：{unescape(title[0])}')
 
-                    link = \
-                        parent_html.xpath(
-                            f'/html/body/div[2]/div/div[3]/div[2]/div[1]/ul/li[{i}]/div[2]/div[1]/a/@href')[0]
-                    sub_html = etree.HTML(self.session.get(link).text)
+                                        print(f'实践学时：{credit_hours}')
 
-                    content = sub_html.xpath('string(/html/body/div[1]/div[3]/div/div/div[1]/div[2])')
-                    if re.search('可参与部落：(.*)', content) is None:
+                                        location = \
+                                            sub_html.xpath('/html/body/div[1]/div[3]/div/div/div[1]/div[2]/a[1]/text()')[0]
+                                        print(f'活动地点：{location}')
 
-                        college = sub_html.xpath('/html/body/div[1]/div[3]/div/div/div[1]/div[2]/span[5]/text()')[0]
-                        grade = unescape(re.search('活动年级：(.*)', content).group(1))
-                        try:
-                            surplus = re.search(r'剩余名额.*\n.*?(\d+)', content).group(1)
-                        except AttributeError:
-                            surplus = '无限制'
+                                        time = re.search('活动时间：(.*)', content).group(1)
+                                        print(f'活动时间：{time}')
 
-                        if (my_college in college) or (college == '全部'):
-                            if (my_grade in grade) or (grade == '全部'):
-                                if surplus != '0':
-                                    title = parent_html.xpath(
-                                        f'/html/body/div[2]/div/div[3]/div[2]/div[1]/ul/li[{i}]/div[2]/div[1]/a/text()')
-                                    print(f'活动名称：{unescape(title[0])}')
+                                        intro = sub_html.xpath('/html/body/div[1]/div[3]/div/div/div[2]/div[3]/text()')[
+                                            0].strip()
+                                        print(f'活动简介：{intro}')
 
-                                    rewards = parent_html.xpath(
-                                        f'/html/body/div[2]/div/div[3]/div[2]/div[1]/ul/li[{i}]/div[2]/div[4]/text()')
-                                    credit_hours = re.findall('\\d+', rewards[0])[0]
-                                    print(f'实践学时：{credit_hours}')
-
-                                    location = \
-                                        sub_html.xpath('/html/body/div[1]/div[3]/div/div/div[1]/div[2]/a[1]/text()')[0]
-                                    print(f'活动地点：{location}')
-
-                                    time = re.search('活动时间：(.*)', content).group(1)
-                                    print(f'活动时间：{time}')
-
-                                    intro = sub_html.xpath('/html/body/div[1]/div[3]/div/div/div[2]/div[3]/text()')[
-                                        0].strip()
-                                    print(f'活动简介：{intro}')
-
-                                    print()
+                                        print()
 
         if no_activity:
             print('未找到符合要求的活动')
