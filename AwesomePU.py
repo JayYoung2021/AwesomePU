@@ -24,10 +24,10 @@ class PU:
             'remember': 'on'
         }
         self.session = requests.Session()
-        self.session.post('http://pocketuni.net/index.php?app=home&mod=Public&act=doMobileLogin', data=post_data)
+        self.session.post('https://pocketuni.net/index.php?app=home&mod=Public&act=doMobileLogin', data=post_data)
 
     def verification(self) -> bool:
-        html = etree.HTML(self.session.get('http://pocketuni.net/index.php?app=home&mod=Public&act=doLogin').text)
+        html = etree.HTML(self.session.get('https://pocketuni.net/index.php?app=home&mod=Public&act=doLogin').text)
         result = html.xpath('/html/head/script[1]/text()')
         _UID_ = re.search('\\d+', re.search('var _UID_ {3}=(.*)', result[0]).group(1)).group(0)
         return not (_UID_ == '0')
@@ -40,7 +40,7 @@ class PU:
     #     chrome_options = Options()
     #     chrome_options.add_argument("--headless")
     #     browser = webdriver.Chrome(options=chrome_options)
-    #     browser.get(self.session.get('http://pocketuni.net/index.php?app=home&mod=Public&act=Login').url)
+    #     browser.get(self.session.get('https://pocketuni.net/index.php?app=home&mod=Public&act=Login').url)
     #     button = browser.find_element_by_id('sub2')
     #     button.click()
     #     html = etree.HTML(browser.page_source)
@@ -53,7 +53,7 @@ class PU:
         num_per_page = 5
         while num_per_page * p < 100:
             p += 1
-            url = f'http://njtech.pocketuni.net/index.php?app=event&mod=School&act=board&cat=all&&p={p}'
+            url = f'https://njtech.pocketuni.net/index.php?app=event&mod=School&act=board&cat=all&&p={p}'
             parent_html = etree.HTML(requests.get(url).text)
             for i in range(1, num_per_page + 1):
                 status = \
@@ -109,7 +109,7 @@ class PU:
 
 if __name__ == '__main__':
     try:
-        requests.get('http://njtech.pocketuni.net/')
+        requests.get('https://njtech.pocketuni.net/')
     except requests.exceptions.ProxyError:
         print('未连接到互联网')
         sleep_then_exit()
