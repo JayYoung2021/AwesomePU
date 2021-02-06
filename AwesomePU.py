@@ -56,17 +56,18 @@ class PU:
             url = f'https://njtech.pocketuni.net/index.php?app=event&mod=School&act=board&cat=all&&p={p}'
             parent_html = etree.HTML(requests.get(url).text)
             for i in range(1, num_per_page + 1):
-                status = \
-                    parent_html.xpath(f'/html/body/div[2]/div/div[3]/div[2]/div[1]/ul/li[{i}]/div[3]/ul/li/text()')[0]
-                # if status not in ['活动已结束', '报名已结束']:
-                if True:
+                try:
+                    status = parent_html.xpath(
+                        f'/html/body/div[2]/div/div[3]/div[2]/div[1]/ul/li[{i}]/div[3]/ul/span/li/a/text()')[0]
+                except IndexError:
+                    continue
+                if status not in ['活动已结束', '报名已结束']:
                     rewards = parent_html.xpath(
                         f'/html/body/div[2]/div/div[3]/div[2]/div[1]/ul/li[{i}]/div[2]/div[4]/text()')
                     credit_hours = re.findall('\\d+', rewards[0])[0]
                     if credit_hours != '0':
-                        link = \
-                            parent_html.xpath(
-                                f'/html/body/div[2]/div/div[3]/div[2]/div[1]/ul/li[{i}]/div[2]/div[1]/a/@href')[0]
+                        link = parent_html.xpath(
+                            f'/html/body/div[2]/div/div[3]/div[2]/div[1]/ul/li[{i}]/div[2]/div[1]/a/@href')[0]
                         sub_html = etree.HTML(self.session.get(link).text)
                         content = sub_html.xpath('string(/html/body/div[1]/div[3]/div/div/div[1]/div[2])')
                         if re.search('可参与部落：(.*)', content) is None:
@@ -82,13 +83,15 @@ class PU:
                                         if no_activity:
                                             no_activity = False
                                         title = parent_html.xpath(
-                                            f'/html/body/div[2]/div/div[3]/div[2]/div[1]/ul/li[{i}]/div[2]/div[1]/a/text()')
+                                            f'/html/body/div[2]/div/div[3]/div[2]/div[1]/ul/li[{i}]/div[2]/div['
+                                            f'1]/a/text()')
                                         print(f'活动名称：{unescape(title[0])}')
 
                                         print(f'实践学时：{credit_hours}')
 
                                         location = \
-                                            sub_html.xpath('/html/body/div[1]/div[3]/div/div/div[1]/div[2]/a[1]/text()')[0]
+                                            sub_html.xpath(
+                                                '/html/body/div[1]/div[3]/div/div/div[1]/div[2]/a[1]/text()')[0]
                                         print(f'活动地点：{location}')
 
                                         time = re.search('活动时间：(.*)', content).group(1)
