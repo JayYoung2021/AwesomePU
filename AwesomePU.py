@@ -85,13 +85,24 @@ class PU:
                                         title = parent_html.xpath(
                                             f'/html/body/div[2]/div/div[3]/div[2]/div[1]/ul/li[{i}]/div[2]/div['
                                             f'1]/a/text()')
+                                        if '工作人员' in unescape(title[0]):
+                                            continue
                                         print(f'活动名称：{unescape(title[0])}')
 
                                         print(f'实践学时：{credit_hours}')
 
-                                        location = \
-                                            sub_html.xpath(
-                                                '/html/body/div[1]/div[3]/div/div/div[1]/div[2]/a[1]/text()')[0]
+                                        classification = \
+                                            sub_html.xpath('/html/body/div[1]/div[3]/div/div/div[1]/div[2]/text()')[3]
+                                        print(f'活动分类：{classification}')
+
+                                        location = ''
+                                        try:
+                                            location = \
+                                                sub_html.xpath(
+                                                    '/html/body/div[1]/div[3]/div/div/div[1]/div[2]/a[1]/text()')[
+                                                    0]
+                                        except IndexError:
+                                            location = '无'
                                         print(f'活动地点：{location}')
 
                                         time = re.search('活动时间：(.*)', content).group(1)
