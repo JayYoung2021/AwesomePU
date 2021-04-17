@@ -51,7 +51,7 @@ class PU:
         no_activity = True
         p = 0
         num_per_page = 5
-        while num_per_page * p < 100:
+        while p < 150:
             p += 1
             url = f'https://njtech.pocketuni.net/index.php?app=event&mod=School&act=board&cat=all&&p={p}'
             parent_html = etree.HTML(requests.get(url).text)
